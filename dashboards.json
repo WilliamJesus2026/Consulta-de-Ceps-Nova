@@ -1,0 +1,250 @@
+{
+  "estados": [
+    {
+      "sigla": "AC",
+      "nome": "Acre",
+      "faixa_ini": "69900000",
+      "faixa_fim": "69999999",
+      "total_ceps": 5188,
+      "total_cidades": 22,
+      "total_bairros": 206
+    },
+    {
+      "sigla": "AL",
+      "nome": "Alagoas",
+      "faixa_ini": "57000000",
+      "faixa_fim": "57999999",
+      "total_ceps": 16145,
+      "total_cidades": 102,
+      "total_bairros": 327
+    },
+    {
+      "sigla": "AM",
+      "nome": "Amazonas",
+      "faixa_ini": "69000000",
+      "faixa_fim": "69899999",
+      "total_ceps": 20741,
+      "total_cidades": 62,
+      "total_bairros": 335
+    },
+    {
+      "sigla": "AP",
+      "nome": "Amapá",
+      "faixa_ini": "68900000",
+      "faixa_fim": "68999999",
+      "total_ceps": 3665,
+      "total_cidades": 16,
+      "total_bairros": 84
+    },
+    {
+      "sigla": "BA",
+      "nome": "Bahia",
+      "faixa_ini": "40000000",
+      "faixa_fim": "48999999",
+      "total_ceps": 101964,
+      "total_cidades": 417,
+      "total_bairros": 2458
+    },
+    {
+      "sigla": "CE",
+      "nome": "Ceará",
+      "faixa_ini": "60000000",
+      "faixa_fim": "63999999",
+      "total_ceps": 47497,
+      "total_cidades": 184,
+      "total_bairros": 1503
+    },
+    {
+      "sigla": "DF",
+      "nome": "Distrito Federal",
+      "faixa_ini": "70000000",
+      "faixa_fim": "73699999",
+      "total_ceps": 38093,
+      "total_cidades": 1,
+      "total_bairros": 238
+    },
+    {
+      "sigla": "ES",
+      "nome": "Espírito Santo",
+      "faixa_ini": "29000000",
+      "faixa_fim": "29999999",
+      "total_ceps": 47277,
+      "total_cidades": 78,
+      "total_bairros": 1344
+    },
+    {
+      "sigla": "GO",
+      "nome": "Goiás",
+      "faixa_ini": "72800000",
+      "faixa_fim": "76799999",
+      "total_ceps": 93715,
+      "total_cidades": 246,
+      "total_bairros": 4769
+    },
+    {
+      "sigla": "MA",
+      "nome": "Maranhão",
+      "faixa_ini": "65000000",
+      "faixa_fim": "65999999",
+      "total_ceps": 21398,
+      "total_cidades": 217,
+      "total_bairros": 851
+    },
+    {
+      "sigla": "MG",
+      "nome": "Minas Gerais",
+      "faixa_ini": "30000000",
+      "faixa_fim": "39999999",
+      "total_ceps": 160981,
+      "total_cidades": 853,
+      "total_bairros": 9652
+    },
+    {
+      "sigla": "MS",
+      "nome": "Mato Grosso do Sul",
+      "faixa_ini": "79000000",
+      "faixa_fim": "79999999",
+      "total_ceps": 25742,
+      "total_cidades": 79,
+      "total_bairros": 1173
+    },
+    {
+      "sigla": "MT",
+      "nome": "Mato Grosso",
+      "faixa_ini": "78000000",
+      "faixa_fim": "78899999",
+      "total_ceps": 31629,
+      "total_cidades": 142,
+      "total_bairros": 1400
+    },
+    {
+      "sigla": "PA",
+      "nome": "Pará",
+      "faixa_ini": "66000000",
+      "faixa_fim": "68899999",
+      "total_ceps": 36998,
+      "total_cidades": 144,
+      "total_bairros": 904
+    },
+    {
+      "sigla": "PB",
+      "nome": "Paraíba",
+      "faixa_ini": "58000000",
+      "faixa_fim": "58999999",
+      "total_ceps": 21934,
+      "total_cidades": 223,
+      "total_bairros": 595
+    },
+    {
+      "sigla": "PE",
+      "nome": "Pernambuco",
+      "faixa_ini": "50000000",
+      "faixa_fim": "56999999",
+      "total_ceps": 72826,
+      "total_cidades": 185,
+      "total_bairros": 1350
+    },
+    {
+      "sigla": "PI",
+      "nome": "Piauí",
+      "faixa_ini": "64000000",
+      "faixa_fim": "64999999",
+      "total_ceps": 15391,
+      "total_cidades": 224,
+      "total_bairros": 456
+    },
+    {
+      "sigla": "PR",
+      "nome": "Paraná",
+      "faixa_ini": "80000000",
+      "faixa_fim": "87999999",
+      "total_ceps": 93124,
+      "total_cidades": 399,
+      "total_bairros": 4704
+    },
+    {
+      "sigla": "RJ",
+      "nome": "Rio de Janeiro",
+      "faixa_ini": "20000000",
+      "faixa_fim": "28999999",
+      "total_ceps": 123600,
+      "total_cidades": 92,
+      "total_bairros": 3343
+    },
+    {
+      "sigla": "RN",
+      "nome": "Rio Grande do Norte",
+      "faixa_ini": "59000000",
+      "faixa_fim": "59999999",
+      "total_ceps": 18190,
+      "total_cidades": 167,
+      "total_bairros": 422
+    },
+    {
+      "sigla": "RO",
+      "nome": "Rondônia",
+      "faixa_ini": "76800000",
+      "faixa_fim": "76999999",
+      "total_ceps": 15067,
+      "total_cidades": 52,
+      "total_bairros": 467
+    },
+    {
+      "sigla": "RR",
+      "nome": "Roraima",
+      "faixa_ini": "69300000",
+      "faixa_fim": "69399999",
+      "total_ceps": 3865,
+      "total_cidades": 15,
+      "total_bairros": 84
+    },
+    {
+      "sigla": "RS",
+      "nome": "Rio Grande do Sul",
+      "faixa_ini": "90000000",
+      "faixa_fim": "99999999",
+      "total_ceps": 73735,
+      "total_cidades": 497,
+      "total_bairros": 2611
+    },
+    {
+      "sigla": "SC",
+      "nome": "Santa Catarina",
+      "faixa_ini": "88000000",
+      "faixa_fim": "89999999",
+      "total_ceps": 62551,
+      "total_cidades": 295,
+      "total_bairros": 1504
+    },
+    {
+      "sigla": "SE",
+      "nome": "Sergipe",
+      "faixa_ini": "49000000",
+      "faixa_fim": "49999999",
+      "total_ceps": 12791,
+      "total_cidades": 75,
+      "total_bairros": 217
+    },
+    {
+      "sigla": "SP",
+      "nome": "São Paulo",
+      "faixa_ini": "01000000",
+      "faixa_fim": "19999999",
+      "total_ceps": 495482,
+      "total_cidades": 645,
+      "total_bairros": 32882
+    },
+    {
+      "sigla": "TO",
+      "nome": "Tocantins",
+      "faixa_ini": "77000000",
+      "faixa_fim": "77999999",
+      "total_ceps": 14996,
+      "total_cidades": 139,
+      "total_bairros": 547
+    }
+  ],
+  "total_ceps": 1674585,
+  "total_cidades": 5571,
+  "total_bairros": 74426
+}
