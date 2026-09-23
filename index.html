@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Consulta CEPs — Abra Casa</title>
-<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
+<!-- sql.js roda dentro de worker.js (thread dedicada) — não é carregado aqui para não bloquear a UI -->
 <style>
   :root {
     --bg: #0f172a;
@@ -207,8 +207,10 @@
     font-size: 13px;
     margin-bottom: 10px;
   }
+  .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
   table {
     width: 100%;
+    min-width: 640px;
     border-collapse: collapse;
     background: var(--bg);
     border-radius: 8px;
@@ -289,6 +291,33 @@
     margin-bottom: 16px;
     border-radius: 4px;
   }
+  .quality-bar {
+    height: 8px; border-radius: 4px; background: var(--panel-2); overflow: hidden; margin-top: 6px;
+  }
+  .quality-bar > div { height: 100%; background: linear-gradient(90deg, var(--ok), var(--warn)); }
+  .est-tag {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--muted); border: 1px dashed var(--border); border-radius: 4px;
+    padding: 1px 6px; margin-left: 6px; cursor: help;
+  }
+  .global-search {
+    display: flex; gap: 8px; align-items: center; margin-left: auto;
+  }
+  .global-search input {
+    width: 220px;
+  }
+  header .head-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+  @media (max-width: 720px) {
+    .container { padding: 16px; }
+    header { padding: 16px; }
+    .global-search { margin-left: 0; width: 100%; }
+    .global-search input { flex: 1; width: auto; }
+    #mapaBrasil { height: 380px; }
+  }
 </style>
 </head>
 <body>
@@ -299,23 +328,32 @@
 </div>
 
 <header>
-  <h1 style="display:flex;align-items:center;gap:14px;margin:0 0 4px 0;"><svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50" style="border-radius:6px;flex-shrink:0;display:block;"><rect width="50" height="50" fill="#9b1c2e"/><text x="25" y="24" font-family="Arial,sans-serif" font-weight="700" font-size="14" fill="white" text-anchor="middle" letter-spacing="1">ABRA</text><text x="25" y="37" font-family="Arial,sans-serif" font-weight="400" font-size="10" fill="white" text-anchor="middle" letter-spacing="3">casa</text></svg><span>Consulta CEPs</span></h1>
-  <p id="headerSub" style="padding-left:64px;margin:0;">Carregando base…</p>
+  <div class="head-row">
+    <div>
+      <h1 style="display:flex;align-items:center;gap:14px;margin:0 0 4px 0;"><svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50" style="border-radius:6px;flex-shrink:0;display:block;"><rect width="50" height="50" fill="#9b1c2e"/><text x="25" y="24" font-family="Arial,sans-serif" font-weight="700" font-size="14" fill="white" text-anchor="middle" letter-spacing="1">ABRA</text><text x="25" y="37" font-family="Arial,sans-serif" font-weight="400" font-size="10" fill="white" text-anchor="middle" letter-spacing="3">casa</text></svg><span>Consulta CEPs</span></h1>
+      <p id="headerSub" style="padding-left:64px;margin:0;">Carregando base…</p>
+    </div>
+    <div class="global-search">
+      <label for="globalSearch" class="sr-only">Busca rápida por CEP</label>
+      <input type="text" id="globalSearch" placeholder="Busca rápida: digite um CEP…" maxlength="9" autocomplete="off">
+      <button onclick="buscaGlobal()">Ir</button>
+    </div>
+  </div>
 </header>
 
 <div class="container">
 
-  <div class="tabs">
-    <button class="tab active" data-tab="dashboard">📊 Dashboards</button>
-    <button class="tab" data-tab="cep">🔎 Busca por CEP</button>
-    <button class="tab" data-tab="rua">🛣️ Busca por Rua</button>
-    <button class="tab" data-tab="bairro">🏘️ Busca por Bairro</button>
-    <button class="tab" data-tab="cidade">🏙️ Cidade / Estado</button>
-    <button class="tab" data-tab="faixa">📍 Faixa de CEP</button>
+  <div class="tabs" role="tablist" aria-label="Seções da aplicação">
+    <button class="tab active" data-tab="dashboard" role="tab" aria-selected="true" id="tabbtn-dashboard" aria-controls="tab-dashboard">📊 Dashboards</button>
+    <button class="tab" data-tab="cep" role="tab" aria-selected="false" id="tabbtn-cep" aria-controls="tab-cep">🔎 Busca por CEP</button>
+    <button class="tab" data-tab="rua" role="tab" aria-selected="false" id="tabbtn-rua" aria-controls="tab-rua">🛣️ Busca por Rua</button>
+    <button class="tab" data-tab="bairro" role="tab" aria-selected="false" id="tabbtn-bairro" aria-controls="tab-bairro">🏘️ Busca por Bairro</button>
+    <button class="tab" data-tab="cidade" role="tab" aria-selected="false" id="tabbtn-cidade" aria-controls="tab-cidade">🏙️ Cidade / Estado</button>
+    <button class="tab" data-tab="faixa" role="tab" aria-selected="false" id="tabbtn-faixa" aria-controls="tab-faixa">📍 Faixa de CEP</button>
   </div>
 
   <!-- DASHBOARD -->
-  <div class="tab-content active" id="tab-dashboard">
+  <div class="tab-content active" id="tab-dashboard" role="tabpanel" aria-labelledby="tabbtn-dashboard">
     <div class="stats-grid" id="statsGrid"></div>
     <div class="panel">
       <h2>🗺️ Mapa do Brasil — Densidade de CEPs por Estado</h2>
@@ -323,6 +361,7 @@
         Tons mais escuros indicam estados com mais CEPs. Passe o mouse para detalhes; clique para abrir a busca daquele estado.
       </p>
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <button class="secondary" id="btnMetrica" onclick="toggleMapaMetrica()" style="font-size:12px;padding:6px 14px;">📊 Ver: Média por cidade</button>
         <button class="secondary" id="btnZonaSP" onclick="toggleZonaSP()" style="font-size:12px;padding:6px 14px;">🏙️ Zonas SP</button>
         <button class="secondary" id="btnZonaRJ" onclick="toggleZonaRJ()" style="font-size:12px;padding:6px 14px;">🏖️ Zonas RJ</button>
       </div>
@@ -337,106 +376,110 @@
       <div id="faixasTable"></div>
     </div>
     <div class="panel" style="border-left: 3px solid var(--warn);">
-      <h2 style="color: var(--warn);">⚠️ Nota sobre qualidade dos dados</h2>
-      <p style="color: var(--muted); line-height: 1.6; margin: 0;">
+      <h2 style="color: var(--warn);">⚠️ Qualidade dos dados por estado</h2>
+      <p style="color: var(--muted); line-height: 1.6; margin: 0 0 12px 0;">
         A base original (XLSX) tem a coluna <code>Cidade</code> vazia ou corrompida para 4 estados:
         <strong>SP</strong>, <strong>MG</strong>, <strong>RJ</strong> e <strong>ES</strong>.
         Nesses estados, os municípios são identificados por <em>faixa de CEP</em> em vez de pelo nome
         (ex.: <code>Município (CEP 01001-000 a 13058-240)</code> corresponde à capital de SP).
         Logradouros e bairros estão corretos. As buscas por CEP, rua e bairro funcionam normalmente.
+        Abaixo, o percentual real de CEPs sem bairro/cidade vinculados, calculado direto da base — não é estimativa.
       </p>
+      <div id="qualidadeTable"></div>
     </div>
   </div>
 
   <!-- BUSCA POR CEP -->
-  <div class="tab-content" id="tab-cep">
+  <div class="tab-content" id="tab-cep" role="tabpanel" aria-labelledby="tabbtn-cep">
     <div class="panel">
       <h2>Buscar por CEP exato</h2>
       <div class="help">Digite o CEP com 8 dígitos (com ou sem hífen). Ex.: <code>01001000</code> ou <code>01001-000</code></div>
       <div class="form-row">
         <div class="field" style="flex: 2;">
-          <label>CEP</label>
-          <input type="text" id="cepInput" placeholder="01001-000" maxlength="9" autocomplete="off">
+          <label for="cepInput">CEP</label>
+          <input type="text" id="cepInput" placeholder="01001-000" maxlength="9" autocomplete="off" inputmode="numeric">
         </div>
         <button onclick="buscarPorCep()">Buscar</button>
       </div>
-      <div class="results" id="cepResults"></div>
+      <div class="results" id="cepResults" aria-live="polite"></div>
     </div>
   </div>
 
   <!-- BUSCA POR RUA -->
-  <div class="tab-content" id="tab-rua">
+  <div class="tab-content" id="tab-rua" role="tabpanel" aria-labelledby="tabbtn-rua">
     <div class="panel">
       <h2>Buscar por Logradouro / Rua</h2>
-      <div class="help">Selecione o estado e digite parte do nome do logradouro (mínimo 3 caracteres).</div>
+      <div class="help">Selecione o estado e digite parte do nome do logradouro (mínimo 3 caracteres). A busca roda em uma thread separada — a interface continua responsiva enquanto ela processa.</div>
       <div class="form-row">
         <div class="field" style="max-width: 160px;">
-          <label>Estado</label>
+          <label for="ruaEstado">Estado</label>
           <select id="ruaEstado"></select>
         </div>
         <div class="field" style="flex: 2;">
-          <label>Logradouro</label>
+          <label for="ruaInput">Logradouro</label>
           <input type="text" id="ruaInput" placeholder="ex.: Avenida Paulista" autocomplete="off">
         </div>
         <button onclick="buscarPorRua()">Buscar</button>
       </div>
-      <div class="results" id="ruaResults"></div>
+      <div class="results" id="ruaResults" aria-live="polite"></div>
     </div>
   </div>
 
   <!-- BUSCA POR BAIRRO -->
-  <div class="tab-content" id="tab-bairro">
+  <div class="tab-content" id="tab-bairro" role="tabpanel" aria-labelledby="tabbtn-bairro">
     <div class="panel">
       <h2>Buscar por Bairro</h2>
       <div class="help">Selecione o estado e digite parte do nome do bairro (mínimo 2 caracteres).</div>
       <div class="form-row">
         <div class="field" style="max-width: 160px;">
-          <label>Estado</label>
+          <label for="bairroEstado">Estado</label>
           <select id="bairroEstado"></select>
         </div>
         <div class="field" style="flex: 2;">
-          <label>Bairro</label>
+          <label for="bairroInput">Bairro</label>
           <input type="text" id="bairroInput" placeholder="ex.: Centro" autocomplete="off">
         </div>
         <button onclick="buscarPorBairro()">Buscar</button>
       </div>
-      <div class="results" id="bairroResults"></div>
+      <div class="results" id="bairroResults" aria-live="polite"></div>
     </div>
   </div>
 
   <!-- CIDADE / ESTADO -->
-  <div class="tab-content" id="tab-cidade">
+  <div class="tab-content" id="tab-cidade" role="tabpanel" aria-labelledby="tabbtn-cidade">
     <div class="panel">
       <h2>Listar CEPs por Cidade / Estado</h2>
       <div class="help">Escolha um estado e (opcionalmente) uma cidade. Resultados paginados (1.000 por página).</div>
       <div class="form-row">
         <div class="field" style="max-width: 160px;">
-          <label>Estado</label>
+          <label for="cidadeEstado">Estado</label>
           <select id="cidadeEstado"></select>
         </div>
         <div class="field" style="flex: 2;">
-          <label>Cidade</label>
+          <label for="cidadeSelect">Cidade</label>
           <select id="cidadeSelect">
             <option value="">(Todas as cidades do estado)</option>
           </select>
         </div>
         <button onclick="buscarPorCidade()">Buscar</button>
       </div>
-      <div class="results" id="cidadeResults"></div>
+      <div class="results" id="cidadeResults" aria-live="polite"></div>
     </div>
-  
-  <div class="tab-content" id="tab-faixa">
+  </div>
+
+  <!-- FAIXA DE CEP -->
+  <div class="tab-content" id="tab-faixa" role="tabpanel" aria-labelledby="tabbtn-faixa">
     <div class="panel">
       <h2>Buscar CEPs entre dois valores</h2>
       <div class="help">Informe o CEP inicial e o CEP final. A busca funciona mesmo quando a faixa cruza estados diferentes.</div>
       <div class="form-row">
-        <div class="field"><label>CEP Inicial</label>
+        <div class="field"><label for="faixaIni">CEP Inicial</label>
           <input type="text" id="faixaIni" placeholder="01001-000" maxlength="9" autocomplete="off"></div>
-        <div class="field"><label>CEP Final</label>
+        <div class="field"><label for="faixaFim">CEP Final</label>
           <input type="text" id="faixaFim" placeholder="01310-100" maxlength="9" autocomplete="off"></div>
         <button onclick="buscarPorFaixa()">Buscar</button>
       </div>
-      <div class="results" id="faixaResults"></div>
+      <div class="results" id="faixaResults" aria-live="polite"></div>
     </div>
   </div>
 </div>
@@ -444,36 +487,78 @@
 </div>
 
 <script>
-let SQL, metaDB;
-let estadosCache = {};   // sigla -> Database (lazy)
 let estadosInfo = [];    // [{sigla, nome, faixa_ini, faixa_fim, total_ceps, ...}]
 let dashboards = null;
+let cepRanges = [];       // faixas disjuntas, ordenadas por "ini" — geradas a partir dos dados reais
+let carregados = new Set(); // estados já carregados no worker (evita reload)
 
 const $ = id => document.getElementById(id);
 const setLoading = (msg) => { $('loadingText').textContent = msg; $('loadingOverlay').classList.remove('hidden'); };
 const hideLoading = () => { $('loadingOverlay').classList.add('hidden'); };
 const fmt = n => (n == null ? '-' : n.toLocaleString('pt-BR'));
 const fmtCep = c => c ? `${c.substring(0,5)}-${c.substring(5)}` : '-';
+const wrapTable = html => `<div class="table-wrap">${html}</div>`;
+
+// ============= WORKER BRIDGE =============
+// Todo o SQL roda em worker.js (thread dedicada), então a UI nunca trava
+// numa busca pesada (ex.: LIKE full-scan em SP com ~500k linhas).
+const dbWorker = new Worker('worker.js');
+let msgId = 0;
+const pending = new Map();
+dbWorker.onmessage = (ev) => {
+  const { id, ok, result, error } = ev.data;
+  const p = pending.get(id);
+  if (!p) return;
+  pending.delete(id);
+  ok ? p.resolve(result) : p.reject(new Error(error));
+};
+dbWorker.onerror = (ev) => {
+  console.error('Erro no worker:', ev.message);
+};
+function callWorker(type, payload) {
+  const id = ++msgId;
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    dbWorker.postMessage({ id, type, payload });
+  });
+}
+
+async function execMeta(sql, params = []) {
+  return callWorker('execMeta', { sql, params });
+}
+async function execEstado(sigla, sql, params = []) {
+  return callWorker('execEstado', { sigla, sql, params });
+}
+async function getEstadoDB(sigla) {
+  if (carregados.has(sigla)) return;
+  setLoading(`Carregando dados de ${sigla}…`);
+  try {
+    await callWorker('loadEstado', { sigla, version: dashboards.data_version });
+    carregados.add(sigla);
+  } finally {
+    hideLoading();
+  }
+}
 
 // ============= INICIALIZAÇÃO =============
 async function init() {
   try {
-    setLoading('Carregando engine SQL…');
-    SQL = await initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}` });
-
-    setLoading('Carregando dashboards (3 MB compactado)…');
-    const [metaBuf, dashRes, geoRes] = await Promise.all([
-      fetchAndDecompress('meta.db.gz'),
+    setLoading('Carregando dashboards e motor de busca…');
+    const [dashRes, rangesRes, geoRes] = await Promise.all([
       fetch('dashboards.json').then(r => r.json()),
+      fetch('cep-ranges.json').then(r => r.json()),
       fetch('br-states.geojson').then(r => r.json()).catch(() => null)
     ]);
-    metaDB = new SQL.Database(new Uint8Array(metaBuf));
     dashboards = dashRes;
     estadosInfo = dashboards.estados;
+    cepRanges = rangesRes; // já vem ordenado por "ini"
     window.brGeoJson = geoRes;
+
+    await callWorker('initMeta', { version: dashboards.data_version });
 
     populateEstadosSelects();
     renderDashboard();
+    renderQualidade();
     renderMapa();
 
     $('headerSub').textContent =
@@ -494,42 +579,13 @@ function populateEstadosSelects() {
 // ============= TABS =============
 document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
     $('tab-' + btn.dataset.tab).classList.add('active');
   });
 });
-
-// ============= DECOMPRESSÃO GZIP =============
-async function fetchAndDecompress(url) {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`Não foi possível carregar ${url} (HTTP ${resp.status})`);
-  // Usa DecompressionStream (Chrome 80+, Firefox 113+, Safari 16.4+, Edge 80+)
-  if (typeof DecompressionStream !== 'undefined') {
-    const ds = new DecompressionStream('gzip');
-    const stream = resp.body.pipeThrough(ds);
-    return await new Response(stream).arrayBuffer();
-  }
-  // Fallback: navegador antigo, mensagem clara
-  throw new Error('Seu navegador não suporta descompressão gzip nativa. Use Chrome/Edge/Firefox/Safari atualizados.');
-}
-
-// ============= LAZY LOAD POR ESTADO =============
-async function getEstadoDB(sigla) {
-  if (estadosCache[sigla]) return estadosCache[sigla];
-  setLoading(`Carregando dados de ${sigla}…`);
-  try {
-    const buf = await fetchAndDecompress(`${sigla}.db.gz`);
-    const db = new SQL.Database(new Uint8Array(buf));
-    estadosCache[sigla] = db;
-    hideLoading();
-    return db;
-  } catch (e) {
-    hideLoading();
-    throw e;
-  }
-}
 
 // ============= DASHBOARDS =============
 function renderDashboard() {
@@ -607,11 +663,34 @@ function renderDashboard() {
     </tr>`;
   }
   html += '</tbody></table>';
-  $('faixasTable').innerHTML = html;
+  $('faixasTable').innerHTML = wrapTable(html);
+}
+
+// ============= QUALIDADE DE DADOS =============
+function renderQualidade() {
+  const sortedByPct = [...estadosInfo].sort((a,b) => (b.pct_sem_bairro||0) - (a.pct_sem_bairro||0));
+  let html = '<table><thead><tr><th>UF</th><th>Total CEPs</th><th>Sem bairro/cidade vinculado</th><th style="min-width:160px;">% sem vínculo</th></tr></thead><tbody>';
+  for (const e of sortedByPct) {
+    const pct = e.pct_sem_bairro || 0;
+    html += `<tr>
+      <td><strong>${e.sigla}</strong></td>
+      <td>${fmt(e.total_ceps)}</td>
+      <td>${fmt(e.sem_bairro || 0)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="quality-bar" style="flex:1;"><div style="width:${Math.min(100, pct)}%"></div></div>
+          <span style="min-width:44px;text-align:right;">${pct.toFixed(1)}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  $('qualidadeTable').innerHTML = wrapTable(html);
 }
 
 // ============= MAPA COROPLÉTICO =============
 let mapaInstance = null;
+let mapaMetrica = 'total_ceps'; // 'total_ceps' | 'ceps_por_cidade'
 function renderMapa() {
   if (!window.brGeoJson) {
     document.getElementById('mapaBrasil').innerHTML =
@@ -621,7 +700,10 @@ function renderMapa() {
   if (mapaInstance) { mapaInstance.remove(); mapaInstance = null; }
   const statsBySigla = {};
   estadosInfo.forEach(e => statsBySigla[e.sigla] = e);
-  const max = Math.max(...estadosInfo.map(e => e.total_ceps));
+  const metricValue = e => mapaMetrica === 'ceps_por_cidade'
+    ? Math.round(e.total_ceps / Math.max(1, e.total_cidades))
+    : e.total_ceps;
+  const max = Math.max(...estadosInfo.map(metricValue));
 
   function colorFor(n) {
     // Escala 0 -> 1 -> azul claro -> azul escuro
@@ -660,7 +742,7 @@ function renderMapa() {
     const sigla = feature.properties.sigla;
     const stats = statsBySigla[sigla];
     return {
-      fillColor: stats ? colorFor(stats.total_ceps) : '#475569',
+      fillColor: stats ? colorFor(metricValue(stats)) : '#475569',
       weight: 1,
       opacity: 1,
       color: '#0f172a',
@@ -678,8 +760,9 @@ function renderMapa() {
       const s = statsBySigla[sigla];
       const html = s
         ? `<strong>${sigla} — ${nome}</strong><br>
-           CEPs: <strong>${fmt(s.total_ceps)}</strong><br>
+           CEPs: <strong>${fmt(s.total_ceps)}</strong> • Média/cidade: <strong>${fmt(Math.round(s.total_ceps/Math.max(1,s.total_cidades)))}</strong><br>
            Cidades: ${fmt(s.total_cidades)} • Bairros: ${fmt(s.total_bairros)}<br>
+           Sem bairro vinculado: ${(s.pct_sem_bairro||0).toFixed(1)}%<br>
            Faixa: <span style="font-family:monospace">${fmtCep(s.faixa_ini)} → ${fmtCep(s.faixa_fim)}</span>`
         : `<strong>${sigla} — ${nome}</strong><br>sem dados`;
       lyr.bindTooltip(html, tooltipOpts);
@@ -704,7 +787,8 @@ function renderMapa() {
   legend.onAdd = () => {
     const div = L.DomUtil.create('div', 'map-legend');
     const buckets = [0, 0.15, 0.3, 0.5, 0.75, 1];
-    let html = '<div style="font-weight:600;margin-bottom:4px;">CEPs</div>';
+    const titulo = mapaMetrica === 'ceps_por_cidade' ? 'CEPs / cidade' : 'CEPs (total)';
+    let html = `<div style="font-weight:600;margin-bottom:4px;">${titulo}</div>`;
     buckets.forEach((b, i) => {
       const v = Math.round(b * max);
       const next = i < buckets.length-1 ? Math.round(buckets[i+1] * max) : null;
@@ -717,41 +801,41 @@ function renderMapa() {
   legend.addTo(map);
 }
 
+function toggleMapaMetrica() {
+  mapaMetrica = mapaMetrica === 'total_ceps' ? 'ceps_por_cidade' : 'total_ceps';
+  const btn = $('btnMetrica');
+  btn.textContent = mapaMetrica === 'ceps_por_cidade' ? '📊 Ver: Total de CEPs' : '📊 Ver: Média por cidade';
+  renderMapa();
+}
+
 // ============= UTILS =============
+// Detecção de estado por CEP a partir de faixas DISJUNTAS calculadas direto da base real
+// (cep-ranges.json). Antes, o app usava o min/max bruto de cada estado — como a faixa de
+// AM (69000000–69899999) engloba inteiramente a faixa de RR (69300000–69399999), qualquer
+// CEP de Roraima caía sempre no banco de dados do Amazonas e a busca dizia "não encontrado".
+// O mesmo tipo de sobreposição existia entre DF/GO e entre MT/RO.
 function detectEstadoFromCep(cep) {
-  for (const e of estadosInfo) {
-    if (cep >= e.faixa_ini && cep <= e.faixa_fim) return e.sigla;
+  for (const r of cepRanges) {
+    if (cep >= r.ini && cep <= r.fim) return r.uf;
   }
   return null;
 }
 
-function rowsToObjects(result) {
-  if (!result.length) return [];
-  const cols = result[0].columns;
-  return result[0].values.map(v => Object.fromEntries(cols.map((c,i) => [c, v[i]])));
-}
-
-function execMeta(sql, params = []) {
-  return rowsToObjects(metaDB.exec(sql, params));
-}
-
-function execEstado(db, sql, params = []) {
-  return rowsToObjects(db.exec(sql, params));
-}
-
-function enrichCeps(ceps, estado) {
+async function enrichCeps(ceps, estado) {
   if (!ceps.length) return ceps;
-  const bairroIds = [...new Set(ceps.map(c => c.bairro_id).filter(Boolean))];
-  const cidadeIds = [...new Set(ceps.map(c => c.cidade_id).filter(Boolean))];
+  // bairro_id/cidade_id vêm sempre do próprio banco (nunca de input do usuário), mas
+  // forçamos Number.isInteger aqui como defesa em profundidade contra concatenação na IN(...).
+  const bairroIds = [...new Set(ceps.map(c => c.bairro_id).filter(Number.isInteger))];
+  const cidadeIds = [...new Set(ceps.map(c => c.cidade_id).filter(Number.isInteger))];
 
   const bairros = {};
   if (bairroIds.length) {
-    const rows = execMeta(`SELECT id_bairro, bairro FROM bairros WHERE id_bairro IN (${bairroIds.join(',')})`);
+    const rows = await execMeta(`SELECT id_bairro, bairro FROM bairros WHERE id_bairro IN (${bairroIds.join(',')})`);
     rows.forEach(r => bairros[r.id_bairro] = r.bairro);
   }
   const cidades = {};
   if (cidadeIds.length) {
-    const rows = execMeta(`SELECT cidade_id, cidade, sem_nome FROM cidades WHERE cidade_id IN (${cidadeIds.join(',')})`);
+    const rows = await execMeta(`SELECT cidade_id, cidade, sem_nome FROM cidades WHERE cidade_id IN (${cidadeIds.join(',')})`);
     rows.forEach(r => cidades[r.cidade_id] = { nome: r.cidade, semNome: r.sem_nome });
   }
 
@@ -769,6 +853,9 @@ function enrichCeps(ceps, estado) {
 
 // Cache dos resultados atuais para exportação
 const lastResults = {};
+// Para buscas paginadas (Cidade/Estado), guarda como buscar o conjunto COMPLETO sob demanda,
+// pra "Exportar tudo" não ficar limitado à página de 1.000 linhas exibida na tela.
+const lastResultsFull = {};
 
 function renderCepsTable(targetId, ceps, meta = '', exportKey = null) {
   if (!ceps.length) {
@@ -777,27 +864,39 @@ function renderCepsTable(targetId, ceps, meta = '', exportKey = null) {
     return;
   }
   if (exportKey) lastResults[exportKey] = ceps;
-  let html = `<div class="results-meta">${meta || `${fmt(ceps.length)} resultado(s)`}</div>`;
-  if (exportKey) {
-    html += `<div class="export-buttons">
-      <button class="btn-excel" onclick="exportarXLSX('${exportKey}')">📥 Exportar Excel (.xlsx)</button>
-    </div>`;
-  }
-  html += '<table><thead><tr><th>CEP</th><th>Logradouro</th><th>Bairro</th><th>Cidade</th><th>UF</th><th>Zona</th></tr></thead><tbody>';
+
+  let tableHtml = '<table><thead><tr><th>CEP</th><th>Logradouro</th><th>Bairro</th><th>Cidade</th><th>UF</th><th>Zona</th></tr></thead><tbody>';
   for (const c of ceps) {
     const cidStyle = c.cidadeIncerta ? 'color: var(--muted); font-style: italic;' : '';
     const zona = getZona(c.cep, c.estado);
-    html += `<tr>
+    tableHtml += `<tr>
       <td class="cep">${fmtCep(c.cep)}</td>
       <td>${c.logradouro || ''}</td>
       <td>${c.bairro || ''}</td>
       <td style="${cidStyle}">${c.cidade || ''}</td>
       <td>${c.estado || ''}</td>
-      <td>${zona ? `<span style="font-size:11px;padding:2px 7px;border-radius:4px;background:${zonaColor(zona)};color:#0f172a;font-weight:600;white-space:nowrap;">${zona}</span>` : ''}</td>
+      <td>${zona ? `<span style="font-size:11px;padding:2px 7px;border-radius:4px;background:${zonaColor(zona)};color:#0f172a;font-weight:600;white-space:nowrap;">${zona}<span class="est-tag" title="Zona estimada por faixa de CEP, não é uma divisão administrativa oficial">est.</span></span>` : ''}</td>
     </tr>`;
   }
-  html += '</tbody></table>';
-  $(targetId).innerHTML = html;
+  tableHtml += '</tbody></table>';
+
+  const metaHtml = `<div class="results-meta">${meta || `${fmt(ceps.length)} resultado(s)`}</div>`;
+  const exportHtml = exportKey
+    ? `<div class="export-buttons">
+        <button class="btn-excel" onclick="exportarXLSX('${exportKey}')">📥 Exportar Excel (página atual)</button>
+        ${lastResultsFull[exportKey] ? `<button class="btn-excel" onclick="exportarXLSXCompleto('${exportKey}', this)">📥 Exportar Excel (todos os resultados)</button>` : ''}
+      </div>`
+    : '';
+  $(targetId).innerHTML = metaHtml + exportHtml + wrapTable(tableHtml);
+}
+
+function exportarXLSXData(rows, filenameKey) {
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [ {wch:12}, {wch:42}, {wch:30}, {wch:30}, {wch:6} ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'CEPs');
+  const ts = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+  XLSX.writeFile(wb, `ceps-${filenameKey}-${ts}.xlsx`);
 }
 
 function exportarXLSX(key) {
@@ -813,15 +912,37 @@ function exportarXLSX(key) {
     'Cidade': c.cidade || '',
     'UF': c.estado || ''
   }));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  // Ajusta larguras de coluna
-  ws['!cols'] = [ {wch:12}, {wch:42}, {wch:30}, {wch:30}, {wch:6} ];
-  // Estilo do cabeçalho (negrito) - SheetJS Community não aplica visualmente, mas mantém estrutura
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'CEPs');
-  const ts = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
-  XLSX.writeFile(wb, `ceps-${key}-${ts}.xlsx`);
+  exportarXLSXData(rows, key);
 }
+
+async function exportarXLSXCompleto(key, btn) {
+  const fetcher = lastResultsFull[key];
+  if (!fetcher) { alert('Não há dados completos para exportar.'); return; }
+  const originalText = btn ? btn.textContent : null;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Buscando tudo…'; }
+  try {
+    const data = await fetcher();
+    const rows = data.map(c => ({
+      'CEP': fmtCep(c.cep), 'Logradouro': c.logradouro || '', 'Bairro': c.bairro || '',
+      'Cidade': c.cidade || '', 'UF': c.estado || ''
+    }));
+    exportarXLSXData(rows, key + '-completo');
+  } catch (e) {
+    alert('Erro ao buscar todos os resultados: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
+  }
+}
+
+// ============= BUSCA GLOBAL (header) =============
+async function buscaGlobal() {
+  const raw = $('globalSearch').value.replace(/\D/g, '');
+  if (raw.length !== 8) { alert('Digite um CEP com 8 dígitos.'); return; }
+  document.querySelector('.tab[data-tab="cep"]').click();
+  $('cepInput').value = fmtCep(raw);
+  await buscarPorCep();
+}
+$('globalSearch').addEventListener('keydown', e => { if (e.key === 'Enter') buscaGlobal(); });
 
 // ============= BUSCA POR CEP =============
 async function buscarPorCep() {
@@ -835,10 +956,11 @@ async function buscarPorCep() {
     $('cepResults').innerHTML = `<div class="empty">CEP fora das faixas conhecidas.</div>`;
     return;
   }
+  $('cepResults').innerHTML = `<div class="empty" style="color:var(--accent);">Buscando…</div>`;
   try {
-    const db = await getEstadoDB(estado);
-    const ceps = execEstado(db, "SELECT cep, logradouro, bairro_id, cidade_id FROM ceps WHERE cep = ? LIMIT 50", [raw]);
-    const enriched = enrichCeps(ceps, estado);
+    await getEstadoDB(estado);
+    const ceps = await execEstado(estado, "SELECT cep, logradouro, bairro_id, cidade_id FROM ceps WHERE cep = ? LIMIT 50", [raw]);
+    const enriched = await enrichCeps(ceps, estado);
     renderCepsTable('cepResults', enriched, enriched.length ?
       `<span class="badge success">✓ ${enriched.length} resultado(s) — UF detectada: ${estado}</span>` :
       `<span class="badge warn">CEP ${fmtCep(raw)} não encontrado na base (estado estimado: ${estado})</span>`, 'busca-cep');
@@ -859,12 +981,13 @@ async function buscarPorRua() {
   const termo = $('ruaInput').value.trim();
   if (!estado) { $('ruaResults').innerHTML = '<div class="empty">Selecione um estado.</div>'; return; }
   if (termo.length < 3) { $('ruaResults').innerHTML = '<div class="empty">Digite pelo menos 3 caracteres.</div>'; return; }
+  $('ruaResults').innerHTML = `<div class="empty" style="color:var(--accent);">Buscando (roda em segundo plano, a tela continua usável)…</div>`;
   try {
-    const db = await getEstadoDB(estado);
-    const ceps = execEstado(db,
+    await getEstadoDB(estado);
+    const ceps = await execEstado(estado,
       "SELECT cep, logradouro, bairro_id, cidade_id FROM ceps WHERE logradouro LIKE ? ORDER BY logradouro, cep LIMIT 500",
       [`%${termo}%`]);
-    const enriched = enrichCeps(ceps, estado);
+    const enriched = await enrichCeps(ceps, estado);
     const meta = enriched.length === 500
       ? `<span class="badge warn">Mostrando primeiros 500 resultados (refine a busca)</span>`
       : `<span class="badge success">✓ ${fmt(enriched.length)} resultado(s)</span>`;
@@ -884,20 +1007,21 @@ async function buscarPorBairro() {
   const termo = $('bairroInput').value.trim();
   if (!estado) { $('bairroResults').innerHTML = '<div class="empty">Selecione um estado.</div>'; return; }
   if (termo.length < 2) { $('bairroResults').innerHTML = '<div class="empty">Digite pelo menos 2 caracteres.</div>'; return; }
+  $('bairroResults').innerHTML = `<div class="empty" style="color:var(--accent);">Buscando…</div>`;
 
-  const termoSa = removerAcentos(termo);
-  const bairros = execMeta(
-    "SELECT id_bairro, bairro FROM bairros WHERE estado = ? AND bairro_sa LIKE ? ORDER BY bairro LIMIT 100",
-    [estado, `%${termoSa}%`]
-  );
-  if (!bairros.length) { $('bairroResults').innerHTML = '<div class="empty">Nenhum bairro encontrado.</div>'; return; }
-
-  const ids = bairros.map(b => b.id_bairro);
   try {
-    const db = await getEstadoDB(estado);
-    const ceps = execEstado(db,
+    const termoSa = removerAcentos(termo);
+    const bairros = await execMeta(
+      "SELECT id_bairro, bairro FROM bairros WHERE estado = ? AND bairro_sa LIKE ? ORDER BY bairro LIMIT 100",
+      [estado, `%${termoSa}%`]
+    );
+    if (!bairros.length) { $('bairroResults').innerHTML = '<div class="empty">Nenhum bairro encontrado.</div>'; return; }
+
+    const ids = bairros.map(b => b.id_bairro).filter(Number.isInteger);
+    await getEstadoDB(estado);
+    const ceps = await execEstado(estado,
       `SELECT cep, logradouro, bairro_id, cidade_id FROM ceps WHERE bairro_id IN (${ids.join(',')}) ORDER BY bairro_id, cep LIMIT 1000`, []);
-    const enriched = enrichCeps(ceps, estado);
+    const enriched = await enrichCeps(ceps, estado);
     const meta = enriched.length === 1000
       ? `<span class="badge warn">Mostrando 1.000 resultados (${bairros.length} bairros correspondentes)</span>`
       : `<span class="badge success">✓ ${fmt(enriched.length)} CEPs em ${bairros.length} bairro(s)</span>`;
@@ -912,12 +1036,12 @@ $('bairroInput').addEventListener('keydown', e => { if (e.key === 'Enter') busca
 let cidadePage = 0;
 let cidadeLastQuery = null;
 
-$('cidadeEstado').addEventListener('change', () => {
+$('cidadeEstado').addEventListener('change', async () => {
   const est = $('cidadeEstado').value;
   const sel = $('cidadeSelect');
   sel.innerHTML = '<option value="">(Todas as cidades do estado)</option>';
   if (!est) return;
-  const rows = execMeta("SELECT cidade_id, cidade, sem_nome FROM cidades WHERE estado = ? ORDER BY cidade", [est]);
+  const rows = await execMeta("SELECT cidade_id, cidade, sem_nome FROM cidades WHERE estado = ? ORDER BY cidade", [est]);
   rows.forEach(r => {
     const o = document.createElement('option');
     o.value = r.cidade_id;
@@ -935,8 +1059,9 @@ async function buscarPorCidade(page = 0) {
   cidadeLastQuery = { estado, cidadeId };
   const limit = 1000;
   const offset = page * limit;
+  $('cidadeResults').innerHTML = `<div class="empty" style="color:var(--accent);">Buscando…</div>`;
   try {
-    const db = await getEstadoDB(estado);
+    await getEstadoDB(estado);
     let sql, params;
     if (cidadeId) {
       sql = `SELECT cep, logradouro, bairro_id, cidade_id FROM ceps WHERE cidade_id = ? ORDER BY cep LIMIT ${limit} OFFSET ${offset}`;
@@ -947,12 +1072,25 @@ async function buscarPorCidade(page = 0) {
     }
     const countSql = cidadeId ? "SELECT COUNT(*) AS n FROM ceps WHERE cidade_id = ?" : "SELECT COUNT(*) AS n FROM ceps";
     const countParams = cidadeId ? [cidadeId] : [];
-    const total = execEstado(db, countSql, countParams)[0].n;
-    const ceps = execEstado(db, sql, params);
-    const enriched = enrichCeps(ceps, estado);
+    const [countRows, ceps] = await Promise.all([
+      execEstado(estado, countSql, countParams),
+      execEstado(estado, sql, params)
+    ]);
+    const total = countRows[0].n;
+    const enriched = await enrichCeps(ceps, estado);
     const totalPages = Math.ceil(total / limit);
-    const cidadeNome = cidadeId ? execMeta("SELECT cidade FROM cidades WHERE cidade_id = ?", [cidadeId])[0].cidade : 'Todo o estado';
+    const cidadeNome = cidadeId ? (await execMeta("SELECT cidade FROM cidades WHERE cidade_id = ?", [cidadeId]))[0].cidade : 'Todo o estado';
     const meta = `<span class="badge success">✓ ${cidadeNome} — ${fmt(total)} CEPs no total (página ${page+1} de ${totalPages})</span>`;
+
+    // Exportação completa: refaz a mesma consulta sem LIMIT/OFFSET, sob demanda (não baixa tudo à toa)
+    lastResultsFull['busca-cidade'] = total > limit ? async () => {
+      const sqlAll = cidadeId
+        ? `SELECT cep, logradouro, bairro_id, cidade_id FROM ceps WHERE cidade_id = ? ORDER BY cep`
+        : `SELECT cep, logradouro, bairro_id, cidade_id FROM ceps ORDER BY cep`;
+      const allCeps = await execEstado(estado, sqlAll, cidadeId ? [cidadeId] : []);
+      return enrichCeps(allCeps, estado);
+    } : null;
+
     renderCepsTable('cidadeResults', enriched, meta, 'busca-cidade');
     if (totalPages > 1) {
       const pag = document.createElement('div');
@@ -1150,21 +1288,23 @@ async function buscarPorFaixa(){
   const out=$('faixaResults');
   if(ini.length!==8||fim.length!==8){out.innerHTML='<div class="empty">Digite CEP inicial e final com 8 dígitos.</div>';return;}
   if(ini>fim){out.innerHTML='<div class="empty">CEP inicial deve ser menor ou igual ao final.</div>';return;}
-  const estados=estadosInfo.filter(e=>ini<=e.faixa_fim&&fim>=e.faixa_ini).map(e=>e.sigla);
+  // Usa as faixas disjuntas reais (cep-ranges.json) em vez do min/max por estado,
+  // então uma busca que cruze, por ex., o enclave de RR dentro do AM não perde nenhum resultado.
+  const estados=[...new Set(cepRanges.filter(r=>ini<=r.fim&&fim>=r.ini).map(r=>r.uf))];
   if(!estados.length){out.innerHTML='<div class="empty">Faixa fora dos intervalos conhecidos.</div>';return;}
-  out.innerHTML='<div class="empty" style="color:var(--accent);">Carregando…</div>';
+  out.innerHTML='<div class="empty" style="color:var(--accent);">Buscando em '+estados.length+' estado(s) em paralelo…</div>';
   try{
-    let todos=[];
-    for(const sigla of estados){
-      const db=await getEstadoDB(sigla);
-      const rows=execEstado(db,'SELECT cep,logradouro,bairro_id,cidade_id FROM ceps WHERE cep>=? AND cep<=? ORDER BY cep LIMIT 2000',[ini,fim]);
-      todos=todos.concat(enrichCeps(rows,sigla));
-      if(todos.length>=2000) break;
-    }
+    await Promise.all(estados.map(sigla=>getEstadoDB(sigla)));
+    const porEstado = await Promise.all(estados.map(async sigla=>{
+      const rows=await execEstado(sigla,'SELECT cep,logradouro,bairro_id,cidade_id FROM ceps WHERE cep>=? AND cep<=? ORDER BY cep LIMIT 2000',[ini,fim]);
+      return enrichCeps(rows,sigla);
+    }));
+    let todos=porEstado.flat();
     todos.sort((a,b)=>a.cep>b.cep?1:-1);
-    if(todos.length>2000) todos=todos.slice(0,2000);
+    const truncado = todos.length>2000;
+    if(truncado) todos=todos.slice(0,2000);
     const estadosStr=estados.join(', ');
-    const meta=todos.length===2000
+    const meta=truncado
       ?`<span class="badge warn">Primeiros 2.000 resultados — estados: ${estadosStr}</span>`
       :`<span class="badge success">✓ ${fmt(todos.length)} CEP(s) de ${fmtCep(ini)} a ${fmtCep(fim)} — estados: ${estadosStr}</span>`;
     renderCepsTable('faixaResults',todos,meta,'busca-faixa');

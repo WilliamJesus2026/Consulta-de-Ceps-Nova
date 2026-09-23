@@ -7,7 +7,11 @@
       "faixa_fim": "69999999",
       "total_ceps": 5188,
       "total_cidades": 22,
-      "total_bairros": 206
+      "total_bairros": 206,
+      "sem_bairro": 79,
+      "sem_cidade": 79,
+      "sem_logradouro": 32,
+      "pct_sem_bairro": 1.52
     },
     {
       "sigla": "AL",
@@ -16,7 +20,11 @@
       "faixa_fim": "57999999",
       "total_ceps": 16145,
       "total_cidades": 102,
-      "total_bairros": 327
+      "total_bairros": 327,
+      "sem_bairro": 891,
+      "sem_cidade": 891,
+      "sem_logradouro": 288,
+      "pct_sem_bairro": 5.52
     },
     {
       "sigla": "AM",
@@ -25,7 +33,11 @@
       "faixa_fim": "69899999",
       "total_ceps": 20741,
       "total_cidades": 62,
-      "total_bairros": 335
+      "total_bairros": 335,
+      "sem_bairro": 1077,
+      "sem_cidade": 1077,
+      "sem_logradouro": 146,
+      "pct_sem_bairro": 5.19
     },
     {
       "sigla": "AP",
@@ -34,7 +46,11 @@
       "faixa_fim": "68999999",
       "total_ceps": 3665,
       "total_cidades": 16,
-      "total_bairros": 84
+      "total_bairros": 84,
+      "sem_bairro": 58,
+      "sem_cidade": 58,
+      "sem_logradouro": 45,
+      "pct_sem_bairro": 1.58
     },
     {
       "sigla": "BA",
@@ -43,7 +59,11 @@
       "faixa_fim": "48999999",
       "total_ceps": 101964,
       "total_cidades": 417,
-      "total_bairros": 2458
+      "total_bairros": 2458,
+      "sem_bairro": 8089,
+      "sem_cidade": 8089,
+      "sem_logradouro": 982,
+      "pct_sem_bairro": 7.93
     },
     {
       "sigla": "CE",
@@ -52,7 +72,11 @@
       "faixa_fim": "63999999",
       "total_ceps": 47497,
       "total_cidades": 184,
-      "total_bairros": 1503
+      "total_bairros": 1503,
+      "sem_bairro": 3649,
+      "sem_cidade": 3649,
+      "sem_logradouro": 855,
+      "pct_sem_bairro": 7.68
     },
     {
       "sigla": "DF",
@@ -61,7 +85,11 @@
       "faixa_fim": "73699999",
       "total_ceps": 38093,
       "total_cidades": 1,
-      "total_bairros": 238
+      "total_bairros": 238,
+      "sem_bairro": 378,
+      "sem_cidade": 378,
+      "sem_logradouro": 2,
+      "pct_sem_bairro": 0.99
     },
     {
       "sigla": "ES",
@@ -70,7 +98,11 @@
       "faixa_fim": "29999999",
       "total_ceps": 47277,
       "total_cidades": 78,
-      "total_bairros": 1344
+      "total_bairros": 1344,
+      "sem_bairro": 1133,
+      "sem_cidade": 1133,
+      "sem_logradouro": 249,
+      "pct_sem_bairro": 2.4
     },
     {
       "sigla": "GO",
@@ -79,7 +111,11 @@
       "faixa_fim": "76799999",
       "total_ceps": 93715,
       "total_cidades": 246,
-      "total_bairros": 4769
+      "total_bairros": 4769,
+      "sem_bairro": 5006,
+      "sem_cidade": 5006,
+      "sem_logradouro": 409,
+      "pct_sem_bairro": 5.34
     },
     {
       "sigla": "MA",
@@ -88,7 +124,11 @@
       "faixa_fim": "65999999",
       "total_ceps": 21398,
       "total_cidades": 217,
-      "total_bairros": 851
+      "total_bairros": 851,
+      "sem_bairro": 664,
+      "sem_cidade": 664,
+      "sem_logradouro": 268,
+      "pct_sem_bairro": 3.1
     },
     {
       "sigla": "MG",
@@ -97,7 +137,11 @@
       "faixa_fim": "39999999",
       "total_ceps": 160981,
       "total_cidades": 853,
-      "total_bairros": 9652
+      "total_bairros": 9652,
+      "sem_bairro": 5097,
+      "sem_cidade": 5097,
+      "sem_logradouro": 1753,
+      "pct_sem_bairro": 3.17
     },
     {
       "sigla": "MS",
@@ -106,7 +150,11 @@
       "faixa_fim": "79999999",
       "total_ceps": 25742,
       "total_cidades": 79,
-      "total_bairros": 1173
+      "total_bairros": 1173,
+      "sem_bairro": 7514,
+      "sem_cidade": 7514,
+      "sem_logradouro": 171,
+      "pct_sem_bairro": 29.19
     },
     {
       "sigla": "MT",
@@ -115,7 +163,11 @@
       "faixa_fim": "78899999",
       "total_ceps": 31629,
       "total_cidades": 142,
-      "total_bairros": 1400
+      "total_bairros": 1400,
+      "sem_bairro": 753,
+      "sem_cidade": 753,
+      "sem_logradouro": 328,
+      "pct_sem_bairro": 2.38
     },
     {
       "sigla": "PA",
@@ -124,7 +176,11 @@
       "faixa_fim": "68899999",
       "total_ceps": 36998,
       "total_cidades": 144,
-      "total_bairros": 904
+      "total_bairros": 904,
+      "sem_bairro": 2087,
+      "sem_cidade": 2087,
+      "sem_logradouro": 358,
+      "pct_sem_bairro": 5.64
     },
     {
       "sigla": "PB",
@@ -133,7 +189,11 @@
       "faixa_fim": "58999999",
       "total_ceps": 21934,
       "total_cidades": 223,
-      "total_bairros": 595
+      "total_bairros": 595,
+      "sem_bairro": 636,
+      "sem_cidade": 636,
+      "sem_logradouro": 291,
+      "pct_sem_bairro": 2.9
     },
     {
       "sigla": "PE",
@@ -142,7 +202,11 @@
       "faixa_fim": "56999999",
       "total_ceps": 72826,
       "total_cidades": 185,
-      "total_bairros": 1350
+      "total_bairros": 1350,
+      "sem_bairro": 5040,
+      "sem_cidade": 5040,
+      "sem_logradouro": 465,
+      "pct_sem_bairro": 6.92
     },
     {
       "sigla": "PI",
@@ -151,7 +215,11 @@
       "faixa_fim": "64999999",
       "total_ceps": 15391,
       "total_cidades": 224,
-      "total_bairros": 456
+      "total_bairros": 456,
+      "sem_bairro": 506,
+      "sem_cidade": 506,
+      "sem_logradouro": 222,
+      "pct_sem_bairro": 3.29
     },
     {
       "sigla": "PR",
@@ -160,7 +228,11 @@
       "faixa_fim": "87999999",
       "total_ceps": 93124,
       "total_cidades": 399,
-      "total_bairros": 4704
+      "total_bairros": 4704,
+      "sem_bairro": 11269,
+      "sem_cidade": 11269,
+      "sem_logradouro": 1145,
+      "pct_sem_bairro": 12.1
     },
     {
       "sigla": "RJ",
@@ -169,7 +241,11 @@
       "faixa_fim": "28999999",
       "total_ceps": 123600,
       "total_cidades": 92,
-      "total_bairros": 3343
+      "total_bairros": 3343,
+      "sem_bairro": 5054,
+      "sem_cidade": 5054,
+      "sem_logradouro": 212,
+      "pct_sem_bairro": 4.09
     },
     {
       "sigla": "RN",
@@ -178,7 +254,11 @@
       "faixa_fim": "59999999",
       "total_ceps": 18190,
       "total_cidades": 167,
-      "total_bairros": 422
+      "total_bairros": 422,
+      "sem_bairro": 400,
+      "sem_cidade": 400,
+      "sem_logradouro": 194,
+      "pct_sem_bairro": 2.2
     },
     {
       "sigla": "RO",
@@ -187,7 +267,11 @@
       "faixa_fim": "76999999",
       "total_ceps": 15067,
       "total_cidades": 52,
-      "total_bairros": 467
+      "total_bairros": 467,
+      "sem_bairro": 209,
+      "sem_cidade": 209,
+      "sem_logradouro": 116,
+      "pct_sem_bairro": 1.39
     },
     {
       "sigla": "RR",
@@ -196,7 +280,11 @@
       "faixa_fim": "69399999",
       "total_ceps": 3865,
       "total_cidades": 15,
-      "total_bairros": 84
+      "total_bairros": 84,
+      "sem_bairro": 115,
+      "sem_cidade": 115,
+      "sem_logradouro": 26,
+      "pct_sem_bairro": 2.98
     },
     {
       "sigla": "RS",
@@ -205,7 +293,11 @@
       "faixa_fim": "99999999",
       "total_ceps": 73735,
       "total_cidades": 497,
-      "total_bairros": 2611
+      "total_bairros": 2611,
+      "sem_bairro": 3586,
+      "sem_cidade": 3586,
+      "sem_logradouro": 1314,
+      "pct_sem_bairro": 4.86
     },
     {
       "sigla": "SC",
@@ -214,7 +306,11 @@
       "faixa_fim": "89999999",
       "total_ceps": 62551,
       "total_cidades": 295,
-      "total_bairros": 1504
+      "total_bairros": 1504,
+      "sem_bairro": 5049,
+      "sem_cidade": 5049,
+      "sem_logradouro": 413,
+      "pct_sem_bairro": 8.07
     },
     {
       "sigla": "SE",
@@ -223,7 +319,11 @@
       "faixa_fim": "49999999",
       "total_ceps": 12791,
       "total_cidades": 75,
-      "total_bairros": 217
+      "total_bairros": 217,
+      "sem_bairro": 1583,
+      "sem_cidade": 1583,
+      "sem_logradouro": 84,
+      "pct_sem_bairro": 12.38
     },
     {
       "sigla": "SP",
@@ -232,7 +332,11 @@
       "faixa_fim": "19999999",
       "total_ceps": 495482,
       "total_cidades": 645,
-      "total_bairros": 32882
+      "total_bairros": 32882,
+      "sem_bairro": 39225,
+      "sem_cidade": 39225,
+      "sem_logradouro": 745,
+      "pct_sem_bairro": 7.92
     },
     {
       "sigla": "TO",
@@ -241,10 +345,15 @@
       "faixa_fim": "77999999",
       "total_ceps": 14996,
       "total_cidades": 139,
-      "total_bairros": 547
+      "total_bairros": 547,
+      "sem_bairro": 2539,
+      "sem_cidade": 2539,
+      "sem_logradouro": 178,
+      "pct_sem_bairro": 16.93
     }
   ],
   "total_ceps": 1674585,
   "total_cidades": 5571,
-  "total_bairros": 74426
+  "total_bairros": 74426,
+  "data_version": "2026-09-23"
 }
