@@ -1258,13 +1258,10 @@ function zonaColor(zona) {
 let layerZonaSP = null, layerZonaRJ = null;
 let zonaSPAtiva = false, zonaRJAtiva = false;
 
-const ZONAS_RJ_GEOJSON = {type:'FeatureCollection',features:[
-  {type:'Feature',properties:{zona:'Centro RJ'},geometry:{type:'Polygon',coordinates:[[[-43.213,-22.875],[-43.170,-22.875],[-43.170,-22.920],[-43.213,-22.920],[-43.213,-22.875]]]}},
-  {type:'Feature',properties:{zona:'Zona Sul RJ'},geometry:{type:'Polygon',coordinates:[[[-43.213,-22.920],[-43.145,-22.920],[-43.145,-22.990],[-43.213,-22.990],[-43.213,-22.920]]]}},
-  {type:'Feature',properties:{zona:'Zona Norte RJ'},geometry:{type:'Polygon',coordinates:[[[-43.213,-22.820],[-43.100,-22.820],[-43.100,-22.875],[-43.213,-22.875],[-43.213,-22.820]]]}},
-  {type:'Feature',properties:{zona:'Barra da Tijuca'},geometry:{type:'Polygon',coordinates:[[[-43.420,-22.990],[-43.213,-22.990],[-43.213,-23.060],[-43.420,-23.060],[-43.420,-22.990]]]}},
-  {type:'Feature',properties:{zona:'Zona Oeste RJ'},geometry:{type:'Polygon',coordinates:[[[-43.600,-22.880],[-43.420,-22.880],[-43.420,-23.100],[-43.600,-23.100],[-43.600,-22.880]]]}},
-]};
+// Área de Planejamento (1-5) oficial da Prefeitura do Rio, cruzada com o mesmo rótulo de zona
+// usado no resto do app (fonte: Cartografia/Limites_administrativos, geoportal pgeo3.rio.rj.gov.br).
+const RJ_AP_ZONA = { '1': 'Centro', '2': 'Zona Sul', '3': 'Zona Norte', '4': 'Zona Sudoeste', '5': 'Zona Oeste' };
+let rjBairrosGeoJson = null;
 
 async function toggleZonaSP() {
   const btn = document.getElementById('btnZonaSP');
@@ -1297,19 +1294,34 @@ async function toggleZonaSP() {
   } catch(e) { btn.textContent='🏙️ Zonas SP'; alert('Erro ao carregar zonas SP: '+e.message); }
 }
 
-function toggleZonaRJ() {
+async function toggleZonaRJ() {
   const btn=document.getElementById('btnZonaRJ');
   if(!mapaInstance) return;
   if(zonaRJAtiva && layerZonaRJ){
     mapaInstance.removeLayer(layerZonaRJ); layerZonaRJ=null; zonaRJAtiva=false;
     btn.textContent='🏖️ Zonas RJ'; btn.style.background=''; return;
   }
-  layerZonaRJ=L.geoJSON(ZONAS_RJ_GEOJSON,{
-    style:feat=>({fillColor:zonaColor(feat.properties.zona),fillOpacity:0.5,weight:1.5,color:'#0f172a'}),
-    onEachFeature:(feat,lyr)=>lyr.bindTooltip(`<strong>${feat.properties.zona}</strong>`,{sticky:true})
-  }).addTo(mapaInstance);
-  mapaInstance.setView([-22.95,-43.35],10);
-  zonaRJAtiva=true; btn.textContent='🏖️ Zonas RJ ✓'; btn.style.background='rgba(56,189,248,0.25)';
+  btn.textContent='⏳ Carregando…';
+  try {
+    // Antes eram 5 retângulos desenhados à mão (aproximação grosseira). Agora usa o contorno oficial
+    // dos 167 bairros do Rio (Prefeitura do Rio, Cartografia/Limites_administrativos), colorido pela
+    // Área de Planejamento oficial (AP1-AP5) de cada bairro.
+    if (!rjBairrosGeoJson) {
+      rjBairrosGeoJson = await fetch('rj-bairros.geojson').then(r => r.json());
+    }
+    layerZonaRJ = L.geoJSON(rjBairrosGeoJson, {
+      style: feat => {
+        const zona = RJ_AP_ZONA[String(feat.properties.area_plane)];
+        return { fillColor: zona ? zonaColor(zona) : '#e2e8f0', fillOpacity: 0.5, weight: 1, color: '#0f172a' };
+      },
+      onEachFeature: (feat, lyr) => {
+        const zona = RJ_AP_ZONA[String(feat.properties.area_plane)] || '';
+        lyr.bindTooltip(`<strong>${feat.properties.nome}</strong>${zona ? ` — ${zona}` : ''}`, { sticky: true });
+      }
+    }).addTo(mapaInstance);
+    mapaInstance.fitBounds(layerZonaRJ.getBounds(), { padding: [20, 20] });
+    zonaRJAtiva=true; btn.textContent='🏖️ Zonas RJ ✓'; btn.style.background='rgba(56,189,248,0.25)';
+  } catch(e) { btn.textContent='🏖️ Zonas RJ'; alert('Erro ao carregar zonas RJ: '+e.message); }
 }
 
 // ============= FAIXA DE CEP =============
