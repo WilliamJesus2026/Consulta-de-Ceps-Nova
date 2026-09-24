@@ -544,15 +544,19 @@ async function getEstadoDB(sigla) {
 async function init() {
   try {
     setLoading('Carregando dashboards e motor de busca…');
-    const [dashRes, rangesRes, geoRes] = await Promise.all([
+    const [dashRes, rangesRes, geoRes, zonasRes] = await Promise.all([
       fetch('dashboards.json').then(r => r.json()),
       fetch('cep-ranges.json').then(r => r.json()),
-      fetch('br-states.geojson').then(r => r.json()).catch(() => null)
+      fetch('br-states.geojson').then(r => r.json()).catch(() => null),
+      fetch('zonas-sp-rj.json').then(r => r.json()).catch(() => ({ sp: {}, spSub: {}, rj: {} }))
     ]);
     dashboards = dashRes;
     estadosInfo = dashboards.estados;
     cepRanges = rangesRes; // já vem ordenado por "ini"
     window.brGeoJson = geoRes;
+    zonasSP = zonasRes.sp || {};
+    zonasSPSub = zonasRes.spSub || {};
+    zonasRJ = zonasRes.rj || {};
 
     await callWorker('initMeta', { version: dashboards.data_version });
 
@@ -868,14 +872,17 @@ function renderCepsTable(targetId, ceps, meta = '', exportKey = null) {
   let tableHtml = '<table><thead><tr><th>CEP</th><th>Logradouro</th><th>Bairro</th><th>Cidade</th><th>UF</th><th>Zona</th></tr></thead><tbody>';
   for (const c of ceps) {
     const cidStyle = c.cidadeIncerta ? 'color: var(--muted); font-style: italic;' : '';
-    const zona = getZona(c.cep, c.estado);
+    const zona = getZona(c.cep, c.estado, c.bairro);
+    const zonaHtml = zona
+      ? `<span style="font-size:11px;padding:2px 7px;border-radius:4px;background:${zonaColor(zona.label)};color:#0f172a;font-weight:600;white-space:nowrap;">${zona.label}${zona.estimado ? `<span class="est-tag" title="Zona estimada por faixa numérica de CEP, não é uma divisão administrativa oficial">est.</span>` : ''}</span>`
+      : '';
     tableHtml += `<tr>
       <td class="cep">${fmtCep(c.cep)}</td>
       <td>${c.logradouro || ''}</td>
       <td>${c.bairro || ''}</td>
       <td style="${cidStyle}">${c.cidade || ''}</td>
       <td>${c.estado || ''}</td>
-      <td>${zona ? `<span style="font-size:11px;padding:2px 7px;border-radius:4px;background:${zonaColor(zona)};color:#0f172a;font-weight:600;white-space:nowrap;">${zona}<span class="est-tag" title="Zona estimada por faixa de CEP, não é uma divisão administrativa oficial">est.</span></span>` : ''}</td>
+      <td>${zonaHtml}</td>
     </tr>`;
   }
   tableHtml += '</tbody></table>';
@@ -1177,27 +1184,58 @@ const ZONAS_ESTADO = {
     [88000000,88049999,'Centro Florianópolis'],[88050000,88199999,'Ilha — Norte/Sul'],
     [88200000,88499999,'Continente / Região Metropolitana SC'],[89000000,89999999,'Interior SC']],
   SE: [[49000000,49099999,'Aracaju'],[49100000,49999999,'Interior SE']],
+  // Faixas 01–05 e 08 conferidas contra a tabela oficial de delimitação de CEPs dos Correios/SMUL
+  // (artigo "Divisão territorial e administrativa do município de São Paulo", Wikipédia). O trecho
+  // 06-07-09 cai fora da capital (Grande SP/ABC) — confirmado consultando os bairros reais da base
+  // (ex.: CEP 06xxx e 07xxx têm bairro "Centro" de municípios do ABC, não da capital).
   SP: [
     [1000000,1999999,'Centro SP'],[2000000,2999999,'Zona Norte SP'],
-    [3000000,3999999,'Zona Leste SP'],[4000000,4999999,'Zona Sul SP'],
-    [5000000,5999999,'Zona Oeste SP'],[6000000,8999999,'Grande SP'],
+    [3000000,3999999,'Zona Leste SP'],[4000000,4999999,'Zona Centro-Sul SP'],
+    [5000000,5999999,'Zona Oeste SP'],[6000000,7999999,'Grande SP (ABC)'],
+    [8000000,8499999,'Zona Leste SP'],[8500000,8999999,'Grande SP (ABC)'],
     [9000000,9999999,'Grande ABC'],[10000000,19999999,'Interior SP']],
   TO: [[77000000,77099999,'Palmas'],[77100000,77999999,'Interior TO']],
 };
 
-function getZona(cep, estado) {
-  if (!cep || !estado) return '';
-  const n = parseInt(cep, 10);
-  if (isNaN(n)) return '';
-  const ranges = ZONAS_ESTADO[estado];
-  if (!ranges) return '';
-  for (const [min, max, label] of ranges) {
-    if (n >= min && n <= max) return label;
+// SP e RJ têm classificação de zona MAIS PRECISA que os outros estados: em vez de só uma faixa
+// numérica de CEP, usamos o nome real do bairro (vindo do próprio banco) cruzado com listas oficiais
+// (distritos/subprefeituras de SP e bairros/subprefeituras do RJ, extraídas da Wikipédia — ver
+// zonas-sp-rj.json). Isso só cobre uma fração dos CEPs de SP (bairro na base é raso: muitas linhas
+// só têm "Centro" em vez do distrito real) e a maior parte dos do RJ (~95% na capital). Quando não
+// há correspondência exata, caímos de volta na faixa numérica de CEP (marcada como estimativa).
+let zonasSP = {}, zonasSPSub = {}, zonasRJ = {};
+function normalizaBairro(s) {
+  if (!s) return '';
+  return removerAcentos(s).toUpperCase().replace(/\([^)]*\)/g, '').replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function getZona(cep, estado, bairro) {
+  if (!cep || !estado) return null;
+  if (bairro) {
+    const nb = normalizaBairro(bairro);
+    if (estado === 'SP') {
+      if (zonasSP[nb]) return { label: zonasSP[nb], estimado: false };
+      const hit = Object.keys(zonasSP).find(k => k.length > 4 && (nb.includes(k) || k.includes(nb)));
+      if (hit) return { label: zonasSP[hit], estimado: false };
+    } else if (estado === 'RJ' && zonasRJ[nb]) {
+      return { label: zonasRJ[nb], estimado: false };
+    }
   }
-  return '';
+  const n = parseInt(cep, 10);
+  if (isNaN(n)) return null;
+  const ranges = ZONAS_ESTADO[estado];
+  if (!ranges) return null;
+  for (const [min, max, label] of ranges) {
+    if (n >= min && n <= max) return { label, estimado: true };
+  }
+  return null;
 }
 
 const ZONA_PALETA = {
+  // chaves mais específicas primeiro (zonaColor usa a primeira que bater via .includes)
+  'Centro-Sul': '#fbbf24', 'Sudeste':    '#f97316', 'Nordeste':   '#facc15',
+  'Noroeste':   '#a3e635', 'Leste 1':    '#fca5a5', 'Leste 2':    '#f87171',
+  'Barra da Tijuca': '#34d399', 'Grande Tijuca': '#5eead4', 'Grande Bangu': '#fdba74',
+  'Jacarepaguá': '#2dd4bf', 'Ilhas': '#7dd3fc',
   'Centro':     '#fde68a', 'Centro ':    '#fde68a',
   'Zona Sul':   '#6ee7b7', 'Sul':        '#6ee7b7',
   'Zona Norte': '#93c5fd', 'Norte':      '#93c5fd',
@@ -1237,18 +1275,21 @@ async function toggleZonaSP() {
   }
   btn.textContent='⏳ Carregando…';
   try {
-    const resp = await fetch('https://raw.githubusercontent.com/codigourbano/subprefeituras-sp/master/subprefeituras-sp.geojson');
+    // URL antiga apontava pra raiz do repo e sempre dava 404 (arquivo fica em data/); e a propriedade
+    // do nome da subprefeitura no geojson é "name", não "ds_nome"/"nome" — os dois bugs faziam essa
+    // camada nunca funcionar (sempre caía no catch e mostrava o alerta de erro).
+    const resp = await fetch('https://raw.githubusercontent.com/codigourbano/subprefeituras-sp/master/data/subprefeituras-sp.geojson');
     const gj = await resp.json();
-    const zonaMap={'CENTRO':'Centro SP','SÉ':'Centro SP','REPÚBLICA':'Centro SP','SANTANA':'Zona Norte SP','JAÇANÃ':'Zona Norte SP','TREMEMBÉ':'Zona Norte SP','CASA VERDE':'Zona Norte SP','CACHOEIRINHA':'Zona Norte SP','FREGUESIA DO Ó':'Zona Norte SP','BRASILÂNDIA':'Zona Norte SP','PERUS':'Zona Norte SP','PIRITUBA':'Zona Norte SP','LAPA':'Zona Oeste SP','PINHEIROS':'Zona Oeste SP','BUTANTÃ':'Zona Oeste SP','CAMPO LIMPO':'Zona Sul SP','M\'BOI MIRIM':'Zona Sul SP','SANTO AMARO':'Zona Sul SP','PARELHEIROS':'Zona Sul SP','CIDADE ADEMAR':'Zona Sul SP','JABAQUARA':'Zona Sul SP','IPIRANGA':'Zona Sul SP','VILA MARIANA':'Zona Sul SP','MOOCA':'Zona Leste SP','PENHA':'Zona Leste SP','ERMELINO MATARAZZO':'Zona Leste SP','SÃO MATEUS':'Zona Leste SP','ITAQUERA':'Zona Leste SP','GUAIANASES':'Zona Leste SP','CIDADE TIRADENTES':'Zona Leste SP','SÃO MIGUEL':'Zona Leste SP','ARICANDUVA':'Zona Leste SP'};
     layerZonaSP = L.geoJSON(gj, {
       style: feat => {
-        const nome=(feat.properties.ds_nome||feat.properties.nome||'').toUpperCase();
-        const zona=Object.keys(zonaMap).find(k=>nome.includes(k));
-        return {fillColor:zona?zonaColor(zonaMap[zona]):'#e2e8f0',fillOpacity:0.5,weight:1.5,color:'#0f172a'};
+        const nome = normalizaBairro(feat.properties.name || '');
+        const zona = zonasSPSub[nome];
+        return {fillColor: zona ? zonaColor(zona) : '#e2e8f0', fillOpacity:0.5, weight:1.5, color:'#0f172a'};
       },
       onEachFeature:(feat,lyr)=>{
-        const nome=feat.properties.ds_nome||feat.properties.nome||'';
-        lyr.bindTooltip(`<strong>${nome}</strong>`,{sticky:true});
+        const nome = feat.properties.name || '';
+        const zona = zonasSPSub[normalizaBairro(nome)] || '';
+        lyr.bindTooltip(`<strong>${nome}</strong>${zona ? ` — ${zona}` : ''}`,{sticky:true});
       }
     }).addTo(mapaInstance);
     mapaInstance.fitBounds(layerZonaSP.getBounds(),{padding:[20,20]});
